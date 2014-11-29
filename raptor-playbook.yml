@@ -1,0 +1,47 @@
+- hosts: all
+  user: vagrant
+  sudo: yes
+  tasks:
+  - name: apt | pkg install
+    apt:  name={{ item }} 
+      update_cache=yes
+    with_items:
+      - build-essential 
+      - libcurl4-openssl-dev
+      - python-software-properties
+
+  - name: apt_repository | add brightbox repo
+    apt_repository: repo='ppa:brightbox/ruby-ng'
+
+  - name: apt | install ruby
+    apt: name={{ item }}
+      update_cache=yes
+    with_items:
+    - ruby2.1
+    - ruby2.1-dev
+
+  - name: gem | install passenger
+    gem: name=passenger 
+      user_install=no
+      pre_release=yes
+
+  - name: group | add nginx group
+    group: name=nginx   
+
+  - name: user | add nginx user
+    user: name=nginx 
+      group=nginx
+      shell=/usr/sbin/nologin
+
+  - name: command | install nginx
+    command: passenger-install-nginx-module --auto --languages ruby --extra-configure-flags='--user=nginx --group=nginx'
+  
+  - name: get_url | get init script
+    get_url: url=https://www.linode.com/docs/assets/1139-init-deb.sh
+      dest=/etc/init.d/nginx
+      mode=0755
+  
+  - name: service | nginx start
+    service: name=nginx
+      enabled=yes
+      state=started
